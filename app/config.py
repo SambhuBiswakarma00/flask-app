@@ -2,7 +2,7 @@ import os
 import boto3
 
 # Initialize Boto3 client for Systems Manager
-ssm = boto3.client('ssm', region_name='your_region')
+ssm = boto3.client('ssm', region_name='us-east-1')
 
 # Function to retrieve database password from Parameter Store
 def get_db_password():

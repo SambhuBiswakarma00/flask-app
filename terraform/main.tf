@@ -223,7 +223,7 @@ resource "aws_launch_configuration" "my_launch_config" {
     apt update
     sleep 180
     touch test.txt
-    apt install -y apache2
+    # apt install -y apache2
     export RDS_HOST=$(echo ${aws_db_instance.my_db_instance.endpoint} | cut -d: -f1)
     # run this below command before installing the pip, this will supress the prompt for the service restart otherwise we need to manually interact with that prompt
     sudo sed -i "s/#\$nrconf{restart} = 'i';/\$nrconf{restart} = 'a';/g" /etc/needrestart/needrestart.conf 
