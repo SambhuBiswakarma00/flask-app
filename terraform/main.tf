@@ -216,14 +216,21 @@ resource "aws_launch_configuration" "my_launch_config" {
   security_groups           = [aws_security_group.my_security_group.id]  # Replace with your security group name
   key_name                  = "newkeypair"  # Replace with your SSH key pair name
   iam_instance_profile      = "Instance_profile_for_s3_rds_dynamodb"
-  # user_data = file("/home/sambhu/Personal Projects/Flask app/flask-app-aws/install.sh")
+  depends_on = [aws_db_instance.my_db_instance]
+  # user_data = file("./install.sh")
   user_data = <<-EOF
     #!/bin/bash
-    sudo apt update
+    apt update
+    sleep 180
+    touch test.txt
+    apt install -y apache2
+    export RDS_HOST=$(echo ${aws_db_instance.my_db_instance.endpoint} | cut -d: -f1)
+    # run this below command before installing the pip, this will supress the prompt for the service restart otherwise we need to manually interact with that prompt
+    sudo sed -i "s/#\$nrconf{restart} = 'i';/\$nrconf{restart} = 'a';/g" /etc/needrestart/needrestart.conf 
+    sudo apt-get install python3 python3-pip -y
+    sudo pip3 install flask pymysql boto3
     git clone https://github.com/SambhuBiswakarma00/flask-app-aws.git
-    cd flask-app
-    sudo chmod 777 install.sh
-    ./install.sh
+    sudo python3 flask-app-aws/app/app.py
     EOF
 }
 
@@ -398,7 +405,7 @@ resource "null_resource" "create_database" {
 # ------------------------------------This section is for DynamoDB-------------------------------------------
 
 resource "aws_dynamodb_table" "dynamodb-table" {
-  name           = "dynamoDB_table"
+  name           = "My_Table"
   billing_mode   = "PROVISIONED"
   read_capacity  = 5
   write_capacity = 5
