@@ -80,6 +80,13 @@ resource "aws_security_group" "my_security_group" {
     cidr_blocks = ["0.0.0.0/0"]  
     description = "Allow inbound HTTP traffic"
   }
+  ingress {
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  
+    description = "Allow inbound mysql traffic"
+  }
   // Outbound rules
   egress {
     from_port   = 0  
@@ -209,7 +216,15 @@ resource "aws_launch_configuration" "my_launch_config" {
   security_groups           = [aws_security_group.my_security_group.id]  # Replace with your security group name
   key_name                  = "newkeypair"  # Replace with your SSH key pair name
   iam_instance_profile      = "Instance_profile_for_s3_rds_dynamodb"
-  user_data = file("./install.sh")
+  # user_data = file("./install.sh")
+    user_data = <<-EOF
+              #!/bin/bash
+              # Run your commands here
+              echo "Running command 1"
+              export RDS_HOST=$(echo ${aws_db_instance.my_db_instance.endpoint} | cut -d: -f1)
+              echo "Running install.sh script"
+              ./install.sh
+              EOF
 }
 
 # -----------------------------------------This section is for ELB----------------------------------------------
@@ -221,6 +236,12 @@ resource "aws_lb" "my_elb" {
   load_balancer_type        = "application"
   security_groups           = [aws_security_group.my_security_group.id]  # Replace with your security group name
   subnets                   = [aws_subnet.my_public_subnet.id, aws_subnet.my_public_subnet2.id]  # Replace with your subnet IDs
+  #  access_logs {
+  #   bucket  = aws_s3_bucket.sambhubucket.id
+  #   prefix  = "test-lb"
+  #   enabled = true
+  # }
+  
 }
 
 # Create Target Group
@@ -230,19 +251,23 @@ resource "aws_lb_target_group" "my_target_group" {
   protocol                  = "HTTP"
   vpc_id                    = aws_vpc.my_vpc.id
   # Other target group options...
+  
 }
 
 resource "aws_lb_listener" "my_elb_listener" {
   load_balancer_arn = aws_lb.my_elb.arn
-  port              = "80"
+  port              = 80
   protocol          = "HTTP"
+  
   # ssl_policy        = "ELBSecurityPolicy-2016-08"
   # certificate_arn   = "arn:aws:iam::187416307283:server-certificate/test_cert_rab3wuqwgja25ct3n4jdj2tzu4"
 
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.my_target_group.arn
+    
   }
+  
 }
 
 # -----------------------------------------This section is for S3-------------------------------------------------
@@ -295,7 +320,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "SSE_config" {
   }
 }
 
-# --------------------------------------------This section is for RDS----------------------------------
+# # --------------------------------------------This section is for RDS----------------------------------
 
 data "aws_ssm_parameter" "db_password" {
   name = "rds-db-password" # Update with the parameter name in Parameter Store
@@ -319,20 +344,55 @@ resource "aws_db_instance" "my_db_instance" {
   db_subnet_group_name  = aws_db_subnet_group.rds_subnet_group.name
   skip_final_snapshot   = true
   publicly_accessible   = false  # Update based on your network requirements
-
+  
   # Replace "security-group-id" with your actual security group ID
   vpc_security_group_ids = [aws_security_group.my_security_group.id]
+}
 
-  # Uncomment the following block if you want to enable encryption for the RDS instance
-  # storage_encrypted     = true
-  # kms_key_id            = "alias/aws/rds" # Update with your KMS key ARN
+# Jump instance for managing rds db instance 
+resource "aws_instance" "jump_instance" {
+  ami           = "ami-080e1f13689e07408"  # Specify the AMI ID for your EC2 instance
+  instance_type = "t2.micro"                # Specify the instance type (e.g., t2.micro, t3.small)
+  subnet_id     = aws_subnet.my_public_subnet.id
+  vpc_security_group_ids = [aws_security_group.my_security_group.id]
+  key_name               = "newkeypair"
+  user_data = <<-EOF
+    #!/bin/bash
+    sudo apt-get update
+    sudo apt-get install -y mysql-client
+    EOF
+  tags = {
+    Name = "jump-instance-for-mysql"  # Specify a name tag for your instance 
+  }
+}
 
-  # Uncomment the following block if you want to specify parameter group and option group
-  # parameter_group_name = "default.mysql5.7"
-  # option_group_name     = "default:mysql-5-7"
+# using below block to automate the creation on database and table in the rds instance
+resource "null_resource" "create_database" {
+  depends_on = [aws_db_instance.my_db_instance, aws_instance.jump_instance]
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"  # The username to use when connecting via SSH
+    private_key = file("/home/sambhu/Intellipaat/newkeypair.pem")  # Path to the private key file
+    host        = aws_instance.jump_instance.public_ip  # The public IP address of the EC2 instance
+  }
 
-  # Uncomment the following block if you want to enable backups
-  # backup_retention_period = 7
+  provisioner "remote-exec" {
+    
+    inline = [
+      "export MYSQL_PWD=${aws_db_instance.my_db_instance.password}",
+      "endpoint=$(echo ${aws_db_instance.my_db_instance.endpoint} | cut -d: -f1)", #we cannot use this endpoint directoly for host because this endpoint contains host url + port (example - 'my-db-instance.cs3r6mwhqazo.us-east-1.rds.amazonaws.com:3306), but we only want the url without port, thats why we are removing port by manupulating the endpoint
+      "mysql -h \"$endpoint\" -u ${aws_db_instance.my_db_instance.username} -e 'CREATE DATABASE IF NOT EXISTS mydatabase;'",
+      "mysql -h \"$endpoint\"  -u ${aws_db_instance.my_db_instance.username} -e 'USE mydatabase; CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, Name VARCHAR(255), location VARCHAR(255), Age VARCHAR(255), Technology VARCHAR(255));'"
+      # "mysql -h ${aws_db_instance.my_db_instance.endpoint} -u ${aws_db_instance.my_db_instance.username} -p${aws_db_instance.my_db_instance.password} -e 'CREATE DATABASE IF NOT EXISTS mydatabase;'",
+      # "mysql -h ${aws_db_instance.my_db_instance.endpoint} -u ${aws_db_instance.my_db_instance.username} -p${aws_db_instance.my_db_instance.password} -e 'USE mydatabase; CREATE TABLE IF NOT EXISTS mytable (id INT AUTO_INCREMENT PRIMARY KEY, Name VARCHAR(255), location VARCHAR(255), Age VARCHAR(255), Technology VARCHAR(255));'"
+        # "mysql -V",
+        # "cd ~",
+        # "sudo touch test.txt",
+        # "echo $endpoint",
+        # "echo $MYSQL_PWD",
+        # "echo ${aws_db_instance.my_db_instance.username}"
+    ]
+  }
 }
 
 # ------------------------------------This section is for DynamoDB-------------------------------------------
