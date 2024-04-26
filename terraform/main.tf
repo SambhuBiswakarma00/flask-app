@@ -216,15 +216,15 @@ resource "aws_launch_configuration" "my_launch_config" {
   security_groups           = [aws_security_group.my_security_group.id]  # Replace with your security group name
   key_name                  = "newkeypair"  # Replace with your SSH key pair name
   iam_instance_profile      = "Instance_profile_for_s3_rds_dynamodb"
-  # user_data = file("./install.sh")
-    user_data = <<-EOF
-              #!/bin/bash
-              # Run your commands here
-              echo "Running command 1"
-              export RDS_HOST=$(echo ${aws_db_instance.my_db_instance.endpoint} | cut -d: -f1)
-              echo "Running install.sh script"
-              ./install.sh
-              EOF
+  # user_data = file("/home/sambhu/Personal Projects/Flask app/flask-app-aws/install.sh")
+  user_data = <<-EOF
+    #!/bin/bash
+    sudo apt update
+    git clone https://github.com/SambhuBiswakarma00/flask-app-aws.git
+    cd flask-app
+    sudo chmod 777 install.sh
+    ./install.sh
+    EOF
 }
 
 # -----------------------------------------This section is for ELB----------------------------------------------
