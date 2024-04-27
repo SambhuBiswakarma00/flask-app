@@ -98,7 +98,7 @@ def hello_world():
         except Exception as e:
             return str(e)
 
-    return render_template("index.html")
+    return render_template("upload_successful.html")
 
 @app.route("/employee", methods=['GET', 'POST'])
 def get_employee():
