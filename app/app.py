@@ -98,13 +98,13 @@ def hello_world():
         except Exception as e:
             return str(e)
 
-        return redirect("/success")
+        # return redirect("/success")
 
     return render_template("index.html")
 
-@app.route("/success")
-def success_page():
-    return render_template("success.html")
+# @app.route("/success")
+# def success_page():
+#     return render_template("success.html")
 
 @app.route("/employee", methods=['GET', 'POST'])
 def get_employee():
