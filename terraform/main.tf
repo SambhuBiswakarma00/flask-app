@@ -402,6 +402,12 @@ resource "null_resource" "create_database" {
   }
 }
 
+resource "aws_ssm_parameter" "rds_host" {
+  name  = "rds_host"
+  type  = "String"
+  value = aws_db_instance.my_db_instance.endpoint
+}
+
 # ------------------------------------This section is for DynamoDB-------------------------------------------
 
 resource "aws_dynamodb_table" "dynamodb-table" {

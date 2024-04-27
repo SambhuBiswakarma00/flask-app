@@ -16,11 +16,24 @@ def get_db_password():
         return None
 
 
+
+def get_rds_host():
+    try:
+        response = ssm.get_parameter(Name='rds_host', WithDecryption=True)
+        db_host = response['Parameter']['Value']
+        db_host = db_host[:-5]
+        return db_host
+    except Exception as e:
+        print(f"Error retrieving database password: {e}")
+        return None
+
+    
+
+
+
 custombucket = "sambhubucket"
 table = "users"
-# key_id = " "
-# access_key = ""
-databasehost = os.environ.get('RDS_HOST')
+databasehost = get_rds_host()
 duser = "admin"
 dpass = get_db_password()
 s3database = "mydatabase"
