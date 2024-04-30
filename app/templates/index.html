@@ -10,7 +10,7 @@
 <body>
   <div class="wrapper">
     <h2>User Details</h2>
-    <form action="/" method="POST">
+    <form action="/" method="POST" enctype="multipart/form-data">
       <div class="input-box">
         <input type="text" placeholder="Enter your Name" name="name" required>
       </div>
@@ -28,10 +28,10 @@
         <p>Profile Image <p/>
         <input type="file" placeholder="Upload your Image" name="file_name" required>
       </div>
-      <div class="policy">
+      <!-- <div class="policy">
         <input type="checkbox">
         <h3>I accept all terms & condition</h3>
-      </div>
+      </div> -->
       <div class="input-box button">
         <input type="Submit" value="Upload">
       </div>
