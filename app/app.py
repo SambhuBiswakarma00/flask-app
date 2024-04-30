@@ -94,7 +94,7 @@ def hello_world():
                 },
                 ConditionExpression='attribute_not_exists(filename)'
             )
-            print("File uploaded to DynamoDB successfully !")
+            print("Data uploaded to DynamoDB successfully !")
         except Exception as e:
             return str(e)
 

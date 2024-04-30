@@ -81,6 +81,13 @@ resource "aws_security_group" "my_security_group" {
     description = "Allow inbound HTTP traffic"
   }
   ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  
+    description = "Allow inbound HTTPS traffic"
+  }
+  ingress {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
