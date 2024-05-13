@@ -1,7 +1,7 @@
 # 3-Tier Flask Application with AWS
 
 ## Overview
-This project aims to showcase the development and deployment of a web application using Flask, a Python micro-framework, along with various AWS services for hosting and managing the application infrastructure. The application allows users to upload user's data in RDS, files in S3 and S3 object's metadata in DynamoDB.
+This project aims to showcase the development and deployment of a web application using Flask, a Python micro-framework, along with various AWS services for hosting and managing the application infrastructure. The application allows users to upload user's data in RDS, files in S3 and S3 object's metadata in DynamoDB. And everything is automated with Terraform from infrastructure provisioning to application deployment.
 
 ## Technical Architecture
 ![flask app](https://github.com/SambhuBiswakarma00/flask-app-aws/assets/142966523/6248627b-9d93-4a52-8419-fc61823dffa4)
