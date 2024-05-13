@@ -249,6 +249,7 @@ resource "aws_lb" "my_elb" {
   load_balancer_type        = "application"
   security_groups           = [aws_security_group.my_security_group.id]  # Replace with your security group name
   subnets                   = [aws_subnet.my_public_subnet.id, aws_subnet.my_public_subnet2.id]  # Replace with your subnet IDs and it should have atleast two subnets
+  # You can enable access log section below if you want to store access log in s3
   #  access_logs {
   #   bucket  = aws_s3_bucket.sambhubucket.id
   #   prefix  = "test-lb"
@@ -336,10 +337,10 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "SSE_config" {
 # # --------------------------------------------This section is for RDS----------------------------------
 
 data "aws_ssm_parameter" "db_password" {
-  name = "rds-db-password" # Update with the parameter name in Parameter Store
+  name = "rds-db-password" # Update with the parameter name in Parameter Store where you have stored the database password
 }
 
-# subnet group config for db
+# subnet group config for db where there should be atleast two subnets
 resource "aws_db_subnet_group" "rds_subnet_group" {
   name = "my-rds-database-subnet-group"
   subnet_ids = [aws_subnet.my_private_subnet.id, aws_subnet.my_private_subnet2.id]
