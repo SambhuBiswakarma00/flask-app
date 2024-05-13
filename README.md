@@ -72,7 +72,13 @@ AWS Account and IAM User
   - Create S3 bucket
   - Configure SSE for the S3 bucket
 - Create RDS
-  - Configure SSM parameter for retrieving database password from Parameter Store.
+  - Configure SSM parameter for retrieving database password from Parameter Store
+  - Configure subnet group for the RDS and it should have atleast two subnets
+  - Create RDS instance
+  - Create a jump server in one of the public subnets, from here we can manage ec2 instances and RDS instances in private subnets
+  - Create database and tables in RDS for the application using "remote-exec" provisioner on the jump server.
+- Create DynamoDB
+  - Crate DynamoDB table which will store the metadata of the objects uploaded to S3.
 
 ## Deployment and Hosting
 The Flask application and associated AWS infrastructure are deployed and hosted on the AWS cloud platform. The infrastructure is provisioned using Terraform, allowing for automated and repeatable deployment processes.
