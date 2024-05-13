@@ -211,8 +211,8 @@ resource "aws_autoscaling_group" "my_asg" {
   max_size                  = 3
   desired_capacity          = 2
   launch_configuration      = aws_launch_configuration.my_launch_config.name
-  vpc_zone_identifier       = [aws_subnet.my_private_subnet.id]  # Replace with your subnet IDs
-  target_group_arns         = [aws_lb_target_group.my_target_group.arn]  # Associate ASG with target group
+  vpc_zone_identifier       = [aws_subnet.my_private_subnet.id,aws_subnet.my_private_subnet2.id]  # Replace with your subnet IDs
+  target_group_arns         = [aws_lb_target_group.my_target_group.arn]  # Associate ASG with target group created in the ELB section
 }
 
 # Create Launch Configuration
@@ -222,15 +222,14 @@ resource "aws_launch_configuration" "my_launch_config" {
   instance_type             = "t2.micro"      # Replace with your desired instance type
   security_groups           = [aws_security_group.my_security_group.id]  # Replace with your security group name
   key_name                  = "newkeypair"  # Replace with your SSH key pair name
-  iam_instance_profile      = "Instance_profile_for_s3_rds_dynamodb"
-  depends_on = [aws_db_instance.my_db_instance]
+  iam_instance_profile      = "Instance_profile_for_s3_rds_dynamodb" #this instance profile should have proper permissions for RDS, S3, DynamoDB, Parameter store and other necessary permissions
+  depends_on = [aws_db_instance.my_db_instance] #this launch config will only be created after RDS creation because we need RDS database endpoint for the database host url.
   # user_data = file("./install.sh")
+  # Given below user data commands will do the necessary setup of instances for our application to run.
   user_data = <<-EOF
     #!/bin/bash
     apt update
     sleep 180
-    touch test.txt
-    # apt install -y apache2
     export RDS_HOST=$(echo ${aws_db_instance.my_db_instance.endpoint} | cut -d: -f1)
     # run this below command before installing the pip, this will supress the prompt for the service restart otherwise we need to manually interact with that prompt
     sudo sed -i "s/#\$nrconf{restart} = 'i';/\$nrconf{restart} = 'a';/g" /etc/needrestart/needrestart.conf 
@@ -249,7 +248,7 @@ resource "aws_lb" "my_elb" {
   internal                  = false
   load_balancer_type        = "application"
   security_groups           = [aws_security_group.my_security_group.id]  # Replace with your security group name
-  subnets                   = [aws_subnet.my_public_subnet.id, aws_subnet.my_public_subnet2.id]  # Replace with your subnet IDs
+  subnets                   = [aws_subnet.my_public_subnet.id, aws_subnet.my_public_subnet2.id]  # Replace with your subnet IDs and it should have atleast two subnets
   #  access_logs {
   #   bucket  = aws_s3_bucket.sambhubucket.id
   #   prefix  = "test-lb"
@@ -267,7 +266,7 @@ resource "aws_lb_target_group" "my_target_group" {
   # Other target group options...
   
 }
-
+# Create listener
 resource "aws_lb_listener" "my_elb_listener" {
   load_balancer_arn = aws_lb.my_elb.arn
   port              = 80
